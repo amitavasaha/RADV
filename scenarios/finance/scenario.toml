@@ -1,0 +1,12 @@
+[green_agent]
+endpoint = "http://127.0.0.1:9000"
+cmd = "python scenarios/finance/finance_evaluator.py --host 127.0.0.1 --port 9000"
+
+[[participants]]
+role = "finance_agent"
+endpoint = "http://127.0.0.1:9099"
+cmd = "python scenarios/finance/finance_agent.py --host 127.0.0.1 --port 9099"
+
+[config]
+question = "What was Apple's revenue in 2023?"
+

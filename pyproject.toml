@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "finance-agent"
+version = "0.1.0"
+description = "Finance Agent for AgentBeats"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk>=0.3.5",
+    "google-adk>=1.14.1",
+    "google-genai>=1.36.0",
+    "pydantic>=2.11.9",
+    "python-dotenv>=1.1.1",
+    "uvicorn>=0.35.0",
+    "model-library>=0.1.2",
+    "requests>=2.32.4,<3.0.0",
+    "beautifulsoup4==4.12.3",
+    "google-search-results==2.4.2",
+    "sec-api==1.0.29",
+    "backoff==2.2.1",
+    "aiohttp==3.11.18",
+    "httpx>=0.24.0",
+]
+
+[tool.uv]
+package = true
+dev-dependencies = [
+    "mypy>=1.18.1",
+]
+

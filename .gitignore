@@ -1,0 +1,63 @@
+# ============================================
+# SENSITIVE FILES - NEVER COMMIT
+# ============================================
+# Environment variables and API keys
+.env
+.env.local
+.env.*.local
+
+# ============================================
+# PYTHON GENERATED FILES
+# ============================================
+# Virtual environments
+venv/
+env/
+.venv
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# ============================================
+# RUNTIME OUTPUT
+# ============================================
+# Logs and results
+logs/
+results/
+*.log
+
+# ============================================
+# DEVELOPMENT FILES
+# ============================================
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# ============================================
+# DATA FILES (OPTIONAL)
+# ============================================
+# Keep data/public.csv but exclude caches and temp files
+data/cache/
+data/temp/
+data/downloads/
+
+# Exclude large serialized data files
+*.pkl
+*.pickle
