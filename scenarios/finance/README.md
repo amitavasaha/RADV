@@ -69,22 +69,83 @@ lsof -ti:9099 | xargs kill -9
 
 **Option 2: AgentBeats Platform Submission**
 
-To submit your agent to the AgentBeats platform for evaluation:
+To submit your green agent (evaluator) to the AgentBeats platform for evaluation:
 
-1. **Start Cloudflare Tunnel** (pointing to finance agent):
+### Step 1: Start AgentBeats Agent
+
+**Terminal 1 - Start the agent with AgentBeats CLI:**
 ```bash
-cloudflared tunnel --url http://127.0.0.1:9099
-```
-Copy the public URL (e.g., `https://xxx.trycloudflare.com`)
+source venv/bin/activate
+export PATH="/opt/homebrew/bin:$PATH"  # Add cloudflared to PATH if needed
 
-2. **Start Finance Agent with public URL**:
+agentbeats run scenarios/finance/green_agent_card.toml \
+  --launcher_host 127.0.0.1 \
+  --launcher_port 6000 \
+  --agent_host 127.0.0.1 \
+  --agent_port 6003 \
+  --model_type gemini \
+  --model_name gemini-2.0-flash
+```
+
+This starts:
+- **Launcher** on `127.0.0.1:6000` (local)
+- **Agent** on `127.0.0.1:6003` (local)
+
+### Step 2: Set Up Cloudflare Tunnels
+
+You need **two separate Cloudflare tunnels** - one for the launcher and one for the agent.
+
+**Terminal 2 - Launcher Tunnel (port 6000):**
 ```bash
-python scenarios/finance/finance_agent.py --host 127.0.0.1 --port 9099 --card-url https://YOUR-CLOUDFLARE-URL.trycloudflare.com
+export PATH="/opt/homebrew/bin:$PATH"
+cloudflared tunnel --url http://127.0.0.1:6000
 ```
 
-3. **Register on agentbeats.org** with your Cloudflare public URL
+**Copy the public URL** (e.g., `https://launch-xxx-xxx.trycloudflare.com`) - this is your **Launcher URL**
 
-More details: https://github.com/agentbeats/tutorial/blob/main/README.md
+**Terminal 3 - Agent Tunnel (port 6003):**
+```bash
+export PATH="/opt/homebrew/bin:$PATH"
+cloudflared tunnel --url http://127.0.0.1:6003
+```
+
+**Copy the public URL** (e.g., `https://agent-xxx-xxx.trycloudflare.com`) - this is your **Agent URL**
+
+### Step 3: Update Agent Card
+
+Update `scenarios/finance/green_agent_card.toml` with the **Agent URL** (from Terminal 3):
+
+```toml
+url = "https://agent-xxx-xxx.trycloudflare.com"  # Use the agent tunnel URL, NOT the launcher URL
+```
+
+**Important**: 
+- The agent card `url` field should use the **agent tunnel URL** (port 6003)
+- Do NOT include port numbers in Cloudflare URLs
+- Keep both Cloudflare tunnels running while AgentBeats.org is evaluating
+
+### Step 4: Register on AgentBeats.org
+
+Register your agent with:
+- **Launcher URL**: `https://launch-xxx-xxx.trycloudflare.com` (from Terminal 2, no port number)
+- **Agent URL**: `https://agent-xxx-xxx.trycloudflare.com` (from Terminal 3, no port number)
+- **Card File**: `scenarios/finance/green_agent_card.toml`
+
+### Troubleshooting
+
+**Kill processes if needed:**
+```bash
+# Kill launcher on port 6000
+lsof -ti:6000 | xargs kill -9
+
+# Kill agent on port 6003
+lsof -ti:6003 | xargs kill -9
+```
+
+**More details**: https://github.com/agentbeats/tutorial/blob/main/README.md
+
+
+
 
 **Option 3: Test Agent Directly**
 
