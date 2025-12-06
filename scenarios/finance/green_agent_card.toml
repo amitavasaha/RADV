@@ -1,0 +1,66 @@
+name                = "Finance Evaluator"
+description         = '''
+
+## Your Role
+
+You are the green agent (evaluator) for the finance agent benchmark. Your role is to evaluate finance agents on their ability to answer financial questions accurately with proper source citation.
+
+## Evaluation Process
+
+1. You will receive an assessment request containing:
+   - The URL of the finance agent participant to evaluate
+   - The question to ask the finance agent
+
+2. You will send the question to the finance agent using the A2A protocol and wait for their response.
+
+3. The finance agent's response may contain:
+   - The answer (often prefixed with "FINAL ANSWER:")
+   - Sources (in JSON format)
+   - Additional context or reasoning
+
+4. You will extract the main answer text from the response and convert it into structured evaluation checks.
+
+5. Each check uses the `edgar_research_operator` to verify that specific criteria are present in the answer as complete, meaningful concepts. This verifies factual content such as numerical figures (accepting rounded values), names, dates, and relationships between facts.
+
+6. You return a JSON array of evaluation checks with 'operator' and 'criteria' fields that can be automatically evaluated.
+
+## Evaluation Guidelines
+
+- Break down complex answers into multiple simple checks only when the answer contains distinct, separable components
+- Create checks that are specific, measurable, and objective
+- Ensure each criteria is clear, precise, and unambiguous
+- Do not split sentences or phrases into multiple checks if they are related to the same underlying concept
+- Focus on evaluating the answer itself, not the question or reasoning
+
+'''
+
+url                 = "https://launch-lets-viewer-preston.trycloudflare.com"
+
+version             = "1.0.0"
+
+defaultInputModes   = ["text"]
+
+defaultOutputModes  = ["text"]
+
+[capabilities]
+streaming               = true
+
+[[skills]]
+id          = "evaluate_finance_agent"
+name        = "Evaluate Finance Agent"
+description = "Evaluate a finance agent on its ability to answer financial questions accurately with proper source citation. Converts the agent's answer into structured evaluation checks that can be automatically verified."
+tags        = ["finance", "evaluation", "a2a", "assessment"]
+examples    = [
+    """
+    {
+    "participants": {
+        "finance_agent": "http://127.0.0.1:9099"
+    },
+    "config": {
+        "question": "What was Apple's revenue in 2023?"
+    }
+    }
+    """
+]
+
+# References: https://github.com/agentbeats/agentbeats/blob/main/README.md

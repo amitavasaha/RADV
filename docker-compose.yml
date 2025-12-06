@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  finance-agent:
+    build: .
+    container_name: finance-agent
+    ports:
+      - "9099:9099"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SERP_API_KEY=${SERP_API_KEY}
+      - SEC_EDGAR_API_KEY=${SEC_EDGAR_API_KEY}
+    volumes:
+      - ./data:/app/data
+    command: ["python", "scenarios/finance/finance_agent.py", "--host", "0.0.0.0", "--port", "9099"]
+    restart: unless-stopped
+
+  finance-evaluator:
+    build: .
+    container_name: finance-evaluator
+    ports:
+      - "9000:9000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SERP_API_KEY=${SERP_API_KEY}
+      - SEC_EDGAR_API_KEY=${SEC_EDGAR_API_KEY}
+    volumes:
+      - ./data:/app/data
+    command: ["python", "scenarios/finance/finance_evaluator.py", "--host", "0.0.0.0", "--port", "9000"]
+    restart: unless-stopped
+
+  agentbeats-green-agent:
+    build: .
+    container_name: agentbeats-green-agent
+    ports:
+      - "6000:6000"  # Launcher
+      - "6003:6003"  # Agent
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - SERP_API_KEY=${SERP_API_KEY}
+      - SEC_EDGAR_API_KEY=${SEC_EDGAR_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./scenarios/finance/green_agent_card.toml:/app/scenarios/finance/green_agent_card.toml
+    command: >
+      sh -c "agentbeats run scenarios/finance/green_agent_card.toml
+      --launcher_host 0.0.0.0
+      --launcher_port 6000
+      --agent_host 0.0.0.0
+      --agent_port 6003
+      --model_type gemini
+      --model_name gemini-2.0-flash"
+    restart: unless-stopped
+

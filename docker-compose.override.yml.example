@@ -1,0 +1,17 @@
+# Example override file - copy to docker-compose.override.yml and customize
+# This file allows you to override settings for local development
+
+version: '3.8'
+
+services:
+  finance-agent:
+    ports:
+      - "9099:9099"
+    environment:
+      - GOOGLE_API_KEY=your_key_here
+      - SERP_API_KEY=your_key_here
+      - SEC_EDGAR_API_KEY=your_key_here
+    # Uncomment to mount .env file instead
+    # volumes:
+    #   - ./.env:/app/.env
+

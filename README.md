@@ -97,6 +97,98 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Docker Deployment
+
+### Build the Docker Image
+
+```bash
+docker build -t finance-agent .
+```
+
+### Run with Docker Compose
+
+**Option 1: Using environment variables**
+```bash
+# Set environment variables
+export GOOGLE_API_KEY=your_key
+export SERP_API_KEY=your_key
+export SEC_EDGAR_API_KEY=your_key
+
+# Start services
+docker-compose up -d
+```
+
+**Option 2: Using .env file**
+```bash
+# Copy example override file
+cp docker-compose.override.yml.example docker-compose.override.yml
+# Edit docker-compose.override.yml with your API keys
+
+# Start services
+docker-compose up -d
+```
+
+### Available Services
+
+- **finance-agent**: Finance agent on port 9099
+- **finance-evaluator**: Evaluator on port 9000
+- **agentbeats-green-agent**: AgentBeats agent with launcher (6000) and agent (6003)
+
+### Run Individual Services
+
+**Finance Agent:**
+```bash
+docker run -d \
+  -p 9099:9099 \
+  -e GOOGLE_API_KEY=your_key \
+  -e SERP_API_KEY=your_key \
+  -e SEC_EDGAR_API_KEY=your_key \
+  finance-agent \
+  python scenarios/finance/finance_agent.py --host 0.0.0.0 --port 9099
+```
+
+**Finance Evaluator:**
+```bash
+docker run -d \
+  -p 9000:9000 \
+  -e GOOGLE_API_KEY=your_key \
+  -e SERP_API_KEY=your_key \
+  -e SEC_EDGAR_API_KEY=your_key \
+  finance-agent \
+  python scenarios/finance/finance_evaluator.py --host 0.0.0.0 --port 9000
+```
+
+**AgentBeats Green Agent:**
+```bash
+docker run -d \
+  -p 6000:6000 \
+  -p 6003:6003 \
+  -e GOOGLE_API_KEY=your_key \
+  -e SERP_API_KEY=your_key \
+  -e SEC_EDGAR_API_KEY=your_key \
+  finance-agent \
+  agentbeats run scenarios/finance/green_agent_card.toml \
+    --launcher_host 0.0.0.0 --launcher_port 6000 \
+    --agent_host 0.0.0.0 --agent_port 6003 \
+    --model_type gemini --model_name gemini-2.0-flash
+```
+
+### View Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f finance-agent
+```
+
+### Stop Services
+
+```bash
+docker-compose down
+```
+
 ## Acknowledgments
 
 - Built with [Google ADK](https://github.com/google/adk)
