@@ -101,9 +101,53 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Build the Docker Image
 
+**Local build:**
 ```bash
 docker build -t finance-agent .
 ```
+
+### Build and Push to Registry
+
+To build and push the Docker image to a container registry (Docker Hub, GitHub Container Registry, etc.):
+
+**Using the build script:**
+```bash
+# Docker Hub (default)
+./build-and-push.sh docker.io username/finance-agent latest
+
+# With version tag
+./build-and-push.sh docker.io username/finance-agent 0.1.0
+
+# GitHub Container Registry
+./build-and-push.sh ghcr.io username/finance-agent latest
+
+# Custom registry
+./build-and-push.sh registry.example.com finance-agent latest
+```
+
+**Manual build and push:**
+```bash
+# Build with full image name
+docker build -t registry/repository:tag .
+
+# Push to registry
+docker push registry/repository:tag
+```
+
+**Image naming format:**
+- **Registry**: `docker.io` (Docker Hub), `ghcr.io` (GitHub Container Registry), or your custom registry
+- **Repository**: `username/finance-agent` (Docker Hub) or `finance-agent` (other registries)
+- **Tag**: `latest`, `0.1.0` (version), or any custom tag
+
+**Example Docker image URLs:**
+- Docker Hub: `docker.io/username/finance-agent:latest`
+- GitHub Container Registry: `ghcr.io/username/finance-agent:latest`
+- Custom registry: `registry.example.com/finance-agent:0.1.0`
+
+**Note:** Make sure you're authenticated with the registry before pushing:
+- Docker Hub: `docker login`
+- GitHub Container Registry: `docker login ghcr.io`
+- Other registries: `docker login <registry-url>`
 
 ### Run with Docker Compose
 
