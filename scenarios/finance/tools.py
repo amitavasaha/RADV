@@ -2,7 +2,10 @@ import json
 import os
 import re
 import traceback
+import asyncio
+import time
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import aiohttp
 import backoff
@@ -16,6 +19,38 @@ from model_library.base import LLM, ToolBody, ToolDefinition
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
 MAX_END_DATE = "2025-04-07"
+
+
+class RateLimiter:
+    """Simple rate limiter to ensure minimum delay between API calls."""
+    
+    def __init__(self, min_delay_seconds: float = 1.0):
+        """
+        Initialize rate limiter.
+        
+        Args:
+            min_delay_seconds: Minimum delay in seconds between consecutive calls
+        """
+        self.min_delay_seconds = min_delay_seconds
+        self._last_call_time: Optional[float] = None
+        self._lock = asyncio.Lock()
+    
+    async def wait_if_needed(self):
+        """Wait if necessary to maintain minimum delay between calls."""
+        async with self._lock:
+            if self._last_call_time is not None:
+                elapsed = time.time() - self._last_call_time
+                if elapsed < self.min_delay_seconds:
+                    wait_time = self.min_delay_seconds - elapsed
+                    await asyncio.sleep(wait_time)
+            self._last_call_time = time.time()
+
+
+# Global rate limiter for Gemini API calls
+# Can be configured via GEMINI_API_MIN_DELAY environment variable (default: 1.0 seconds)
+_gemini_rate_limiter = RateLimiter(
+    min_delay_seconds=float(os.getenv("GEMINI_API_MIN_DELAY", "1.0"))
+)
 
 
 def is_429(exception):
@@ -467,6 +502,9 @@ class RetrieveInformation(Tool):
     only "nnual" will be inserted into the prompt.
 
     The output is the result from the LLM that receives the prompt with the inserted data.
+    
+    NOTE: This tool makes a Gemini API call each time it's invoked. A single user query can trigger multiple 
+    API calls (agent reasoning + tool invocations + answer synthesis), which may hit rate limits on free-tier API keys.
     """.strip()
     )
     input_arguments: dict = {
@@ -558,7 +596,92 @@ class RetrieveInformation(Tool):
                 f"ERROR: The key {e} was not found in the data storage. Available keys are: {', '.join(data_storage.keys())}"
             )
 
-        response = await model.query(prompt)
+        # Rate limit: Wait if needed before making API call
+        await _gemini_rate_limiter.wait_if_needed()
+        
+        # Wrap model.query with rate limit handling and retry logic
+        max_retries = 3
+        retry_delay = 5.0  # Default retry delay in seconds
+        
+        for attempt in range(max_retries + 1):
+            try:
+                response = await model.query(prompt)
+                break  # Success, exit retry loop
+            except Exception as e:
+                error_msg = str(e)
+                error_msg_lower = error_msg.lower()
+                
+                # Check for quota/rate limit errors
+                is_quota_error = any(keyword in error_msg_lower for keyword in [
+                    "rate limit", "429", "quota", "resource_exhausted", 
+                    "too many requests", "free_tier", "quota exceeded"
+                ])
+                
+                if is_quota_error:
+                    # Try to extract retry delay from error message
+                    retry_delay_match = None
+                    try:
+                        # Extract retry delay from error message if present
+                        if "retry in" in error_msg_lower:
+                            delay_match = re.search(r'retry in ([\d.]+)s', error_msg_lower)
+                            if delay_match:
+                                retry_delay_match = float(delay_match.group(1))
+                    except Exception:
+                        pass
+                    
+                    retry_delay = retry_delay_match if retry_delay_match else retry_delay
+                    
+                    # Extract quota information if available
+                    quota_info = ""
+                    if "free_tier" in error_msg_lower:
+                        quota_info = "\n⚠️ FREE TIER QUOTA EXCEEDED ⚠️\n"
+                        # Parse specific quota violations from error message
+                        violations = []
+                        if "input_token_count" in error_msg_lower or "input_token_count" in error_msg:
+                            violations.append("- Input tokens per minute limit exceeded")
+                        if "generate_content_free_tier_requests" in error_msg:
+                            # Check for per-minute vs per-day
+                            if "PerMinute" in error_msg or "per minute" in error_msg_lower:
+                                violations.append("- Requests per minute limit exceeded")
+                            if "PerDay" in error_msg or "per day" in error_msg_lower:
+                                violations.append("- Requests per day limit exceeded (daily quota exhausted)")
+                        
+                        if violations:
+                            quota_info += "\n".join(violations) + "\n"
+                        else:
+                            # Fallback parsing
+                            if "input_token" in error_msg_lower:
+                                quota_info += "- Input tokens limit exceeded\n"
+                            if "requests" in error_msg_lower:
+                                quota_info += "- Requests limit exceeded\n"
+                    
+                    # If this is the last attempt, raise a helpful error
+                    if attempt >= max_retries:
+                        raise Exception(
+                            f"❌ Gemini API quota exceeded after {max_retries + 1} attempts:\n\n"
+                            f"{quota_info}"
+                            f"\nOriginal error: {error_msg}\n\n"
+                            f"💡 Solutions:\n"
+                            f"1. **Wait and retry**: The quota resets based on the limit type (minute/day). "
+                            f"   Wait at least {retry_delay:.1f} seconds or check https://ai.dev/rate-limit\n"
+                            f"2. **Upgrade API key**: Free tier has very low limits. Consider upgrading: "
+                            f"https://ai.google.dev/gemini-api/docs/rate-limits\n"
+                            f"3. **Reduce API calls**: Each query triggers multiple API calls. "
+                            f"   Try simpler queries or increase GEMINI_API_MIN_DELAY\n"
+                            f"4. **Check usage**: Monitor your quota at https://ai.dev/rate-limit\n"
+                            f"\nThis tool makes a Gemini API call for each invocation. "
+                            f"A single user query can trigger 3-5+ API calls (reasoning + tools + synthesis)."
+                        ) from e
+                    
+                    # Wait before retrying with exponential backoff
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                    print(f"⚠️  Gemini API quota error (attempt {attempt + 1}/{max_retries + 1}). "
+                          f"Retrying in {wait_time:.1f}s...")
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    # Not a quota error, re-raise immediately
+                    raise
 
         return {
             "retrieval": response.output_text_str,

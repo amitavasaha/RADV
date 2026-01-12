@@ -1,5 +1,6 @@
 """Green agent (evaluator) for the finance agent scenario."""
 import argparse
+import os
 import uvicorn
 from dotenv import load_dotenv
 load_dotenv()
@@ -115,9 +116,13 @@ def main():
         """]
     )
     
+    # Default to gemini-2.5-flash (newer model with better rate limits)
+    # Can be overridden via GEMINI_MODEL env var
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    
     root_agent = Agent(
         name="finance_evaluator",
-        model="gemini-2.0-flash",
+        model=model,
         description="Evaluate finance agents on their ability to answer financial questions accurately with proper source citation.",
         instruction=system_prompt,
         tools=[FunctionTool(func=tool_provider.talk_to_agent)],

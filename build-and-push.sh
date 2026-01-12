@@ -46,3 +46,4 @@ echo ""
 echo "To use this image, update docker-compose.yml:"
 echo "  image: ${IMAGE_NAME}"
 
+

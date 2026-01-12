@@ -214,7 +214,7 @@ docker run -d \
   agentbeats run scenarios/finance/green_agent_card.toml \
     --launcher_host 0.0.0.0 --launcher_port 6000 \
     --agent_host 0.0.0.0 --agent_port 6003 \
-    --model_type gemini --model_name gemini-2.0-flash
+    --model_type gemini --model_name gemini-2.5-flash
 ```
 
 ### View Logs

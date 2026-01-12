@@ -22,14 +22,20 @@ from finance_tools import (
     set_model_ref,
 )
 
-instruction = """You are a financial agent. Today is April 07, 2025. 
+instruction = """You are a financial agent. Today is Nov 30, 2025. 
 You are given a question and you need to answer it using the tools provided.
 
 IMPORTANT: You MUST automatically use the available tools to find the answer. Do not ask for permission or interact with the user - immediately use the tools to search for information and answer the question.
 
 Available tools:
-- google_web_search: Search the web for information
-- edgar_search: Search SEC EDGAR database for filings  
+- google_web_search: Search the web for general financial information, news, market data, or company information. Use this as your primary search tool for most questions.
+- edgar_search: Search SEC EDGAR database for filings
+  ⚠️ IMPORTANT: This API has a 100 calls/month limit. Only use edgar_search when:
+  * The question specifically requires SEC filing data (10-K, 10-Q, 8-K, proxy statements, etc.)
+  * The question asks for official regulatory information from SEC documents
+  * The question cannot be reliably answered with general web search
+  * The question explicitly mentions "SEC filing", "10-K", "10-Q", "EDGAR", or similar regulatory terms
+  For general financial questions, company news, or market data, prefer google_web_search first.
 - parse_html_page: Parse and extract content from web pages
 - retrieve_information: Retrieve and analyze information from stored documents
 
@@ -54,7 +60,10 @@ def main():
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to bind the server")
     parser.add_argument("--port", type=int, default=9099, help="Port to bind the server")
     parser.add_argument("--card-url", type=str, help="External URL to provide in the agent card")
-    parser.add_argument("--model", type=str, default="gemini-2.0-flash", help="Model to use")
+    # Default to gemini-2.5-flash (newer model with better rate limits)
+    # Can be overridden via GEMINI_MODEL env var or --model argument
+    default_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    parser.add_argument("--model", type=str, default=default_model, help="Model to use (default: gemini-2.5-flash)")
     args = parser.parse_args()
 
     # Create tools
@@ -102,7 +111,7 @@ def main():
 
     agent_card = AgentCard(
         name="finance_agent",
-        description='A financial research agent that answers questions using SEC filings, web search, and document analysis.',
+        description='A financial research agent that answers questions using web search, SEC filings, and document analysis.',
         url=args.card_url or f'http://{args.host}:{args.port}/',
         version='1.0.0',
         default_input_modes=['text'],

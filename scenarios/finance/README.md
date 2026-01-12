@@ -31,11 +31,30 @@ uv sync
      GOOGLE_API_KEY=your_google_api_key_here
      SERP_API_KEY=your_serpapi_key_here
      SEC_EDGAR_API_KEY=your_sec_edgar_api_key_here
+     
+     # Optional: Rate limiting for Gemini API calls (default: 1.0 seconds)
+     # This ensures a minimum delay between consecutive API calls to avoid rate limits
+     # Increase this value if you're still hitting rate limits (e.g., 2.0 or 3.0)
+     GEMINI_API_MIN_DELAY=1.0
+     
+     # Optional: Gemini model to use (default: gemini-2.5-flash)
+     # gemini-2.5-flash is the latest model with better rate limits
+     # You can override with: gemini-2.0-flash, gemini-1.5-pro, etc.
+     GEMINI_MODEL=gemini-2.5-flash
      ```
    - Get your keys from:
      - Google API: https://ai.google.dev/gemini-api/docs/api-key
      - SerpAPI: https://serpapi.com/
      - SEC EDGAR API: https://sec-api.io/
+   
+   **Note on Rate Limiting and Model Selection:**
+   - **Default Model**: The agent uses `gemini-2.5-flash` by default, which is the latest model with better rate limits than older versions.
+   - **Rate Limiting**: The finance agent makes multiple Gemini API calls per query (for reasoning, tool calls, and synthesis). To avoid rate limits, a built-in rate limiter adds delays between API calls. You can configure the minimum delay using `GEMINI_API_MIN_DELAY` (in seconds).
+   - **If you're still hitting rate limits**, consider:
+     - Increasing `GEMINI_API_MIN_DELAY` (e.g., to 2.0 or 3.0 seconds)
+     - Using a paid Google API key with higher rate limits
+     - Reducing the number of tool calls per query
+     - Using `gemini-2.5-flash` (default) which has better rate limits than older models
 
 3. Run the scenario:
 
@@ -84,7 +103,7 @@ agentbeats run scenarios/finance/green_agent_card.toml \
   --agent_host 127.0.0.1 \
   --agent_port 6003 \
   --model_type gemini \
-  --model_name gemini-2.0-flash
+  --model_name gemini-2.5-flash
 ```
 
 This starts:

@@ -49,6 +49,6 @@ services:
       --agent_host 0.0.0.0
       --agent_port 6003
       --model_type gemini
-      --model_name gemini-2.0-flash"
+      --model_name gemini-2.5-flash"
     restart: unless-stopped
 
